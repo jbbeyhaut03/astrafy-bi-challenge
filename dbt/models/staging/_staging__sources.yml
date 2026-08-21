@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: landing
+    database: astrafy-bi-challenge
+    schema: landing
+    description: >
+      Raw tables loaded directly from the source xlsx files via
+      scripts/load_raw_data.py. Untouched — no renaming or casting happens
+      here, that's staging's job.
+    tables:
+      - name: raw_orders
+        description: One row per order. Loaded from orders_recrutement.xlsx.
+        columns:
+          - name: orders_id
+            description: Order identifier. Renamed to order_id in staging.
+          - name: customers_id
+            description: Customer identifier. Renamed to client_id in staging.
+          - name: date_date
+            description: Date the order was placed. Renamed to order_date in staging.
+          - name: net_sales
+            description: Order total, in the source currency.
+      - name: raw_sales
+        description: >
+          One row per order per product (line item). Loaded from
+          sales_recrutement.xlsx.
+        columns:
+          - name: order_id
+            description: Order identifier. Should match raw_orders.orders_id.
+          - name: customer_id
+            description: Customer identifier. Renamed to client_id in staging.
+          - name: date_date
+            description: Date the order was placed.
+          - name: products_id
+            description: Product identifier. Renamed to product_id in staging.
+          - name: net_sales
+            description: Line-item revenue for this product within the order.
+          - name: qty
+            description: Quantity of this product within the order. Renamed to order_qty in staging.

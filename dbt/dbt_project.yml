@@ -1,0 +1,26 @@
+name: 'astrafy_bi_challenge'
+version: '1.0.0'
+config-version: 2
+
+profile: 'astrafy_bi_challenge'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  astrafy_bi_challenge:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

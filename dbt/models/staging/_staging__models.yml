@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: >
+      One row per order. Passthrough from raw_orders with renamed columns
+      and explicit types — no filtering or business logic.
+    columns:
+      - name: order_id
+        description: Primary key. Unique identifier of the order.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: Identifier of the customer who placed the order.
+        tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed.
+        tests:
+          - not_null
+      - name: net_sales
+        description: Order total revenue.
+        tests:
+          - not_null
+
+  - name: stg_sales
+    description: >
+      One row per order per product. Passthrough from raw_sales with
+      renamed columns and explicit types — no filtering or business logic.
+    columns:
+      - name: order_id
+        description: Identifier of the order this line belongs to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: client_id
+        description: Identifier of the customer who placed the order.
+        tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed.
+        tests:
+          - not_null
+      - name: product_id
+        description: Identifier of the product on this line.
+        tests:
+          - not_null
+      - name: net_sales
+        description: Line-item revenue for this product within the order.
+        tests:
+          - not_null
+      - name: order_qty
+        description: Quantity of this product within the order.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_id
+              - product_id
