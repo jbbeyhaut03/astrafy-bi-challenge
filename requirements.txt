@@ -1,0 +1,8 @@
+# Ingestion (scripts/load_raw_data.py)
+pandas>=2.0
+openpyxl>=3.1          # pandas' xlsx reader — imported implicitly by read_excel
+pyarrow>=14.0          # required by load_table_from_dataframe
+google-cloud-bigquery>=3.20
+
+# Transformation
+dbt-bigquery>=1.8

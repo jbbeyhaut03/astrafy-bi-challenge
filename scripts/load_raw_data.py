@@ -1,7 +1,14 @@
 """
 Loads the two challenge source files into BigQuery as the landing zone.
-Run once, or whenever the source files change. This is not a dbt model —
-dbt's staging layer reads FROM raw_orders / raw_sales, it never writes here.
+
+Idempotent: creates the `landing` dataset if it does not exist, then replaces
+the contents of raw_orders / raw_sales. Run it once, or any number of times —
+the end state is identical.
+
+This is not a dbt model. dbt's staging layer reads FROM raw_orders / raw_sales
+via source(), and never writes here.
+
+Usage (from anywhere):  python scripts/load_raw_data.py
 """
 from pathlib import Path
 import pandas as pd
@@ -9,12 +16,16 @@ from google.cloud import bigquery
 
 PROJECT_ID = "astrafy-bi-challenge"
 DATASET = "landing"
+LOCATION = "EU"
 
-client = bigquery.Client(project=PROJECT_ID)
+# Anchored to this file, not to the shell's working directory.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+client = bigquery.Client(project=PROJECT_ID, location=LOCATION)
 
 FILES = {
     "raw_orders": {
-        "path": Path("data/raw/orders_recrutement.xlsx"),
+        "path": REPO_ROOT / "data/raw/orders_recrutement.xlsx",
         "schema": [
             bigquery.SchemaField("date_date", "DATE"),
             bigquery.SchemaField("customers_id", "INT64"),
@@ -23,7 +34,7 @@ FILES = {
         ],
     },
     "raw_sales": {
-        "path": Path("data/raw/sales_recrutement.xlsx"),
+        "path": REPO_ROOT / "data/raw/sales_recrutement.xlsx",
         "schema": [
             bigquery.SchemaField("date_date", "DATE"),
             bigquery.SchemaField("customer_id", "INT64"),
@@ -34,6 +45,11 @@ FILES = {
         ],
     },
 }
+
+dataset = bigquery.Dataset(f"{PROJECT_ID}.{DATASET}")
+dataset.location = LOCATION
+dataset = client.create_dataset(dataset, exists_ok=True)
+print(f"dataset ready: {dataset.full_dataset_id} ({dataset.location})")
 
 for table_name, cfg in FILES.items():
     df = pd.read_excel(cfg["path"])
