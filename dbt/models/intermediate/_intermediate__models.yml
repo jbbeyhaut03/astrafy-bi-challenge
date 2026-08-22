@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: int_orders_segmented
+    description: >
+      One row per order, across all available history, with the customer
+      segment attached. The segment is derived from how many orders the same
+      client_id placed in the trailing 12 months strictly before this order:
+      0 prior orders is New, 1 to 3 is Returning, 4 or more is VIP.
+      Thresholds and the lookback window are project variables, not literals.
+      Covers brief Exercise 5. Kept at full history rather than filtered to
+      2026, because an order's segment depends on the customer's orders in the
+      preceding year, which fall outside 2026 for orders early in that year.
+    columns:
+      - name: order_id
+        description: Natural key of the order. Grain of this model.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: client_id
+        description: Customer who placed the order. Partition key of the window.
+        tests:
+          - not_null
+      - name: order_date
+        description: Date the order was placed. Orders the window.
+        tests:
+          - not_null
+      - name: net_sales
+        description: Order total, carried through unchanged from stg_orders.
+        tests:
+          - not_null
+      - name: prior_orders_12m
+        description: >
+          Count of orders placed by the same client_id in the 365 days before
+          this order, excluding the order itself and excluding same-day orders.
+          Retained as an output column so the segment is auditable rather than
+          an opaque label.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+      - name: order_segmentation
+        description: New, Returning or VIP, derived from prior_orders_12m.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['New', 'Returning', 'VIP']
