@@ -1,8 +1,12 @@
+# Built and tested against Python 3.14.5 on macOS (arm64).
+# Exact pins: these are the versions the project was developed and verified with.
+
 # Ingestion (scripts/load_raw_data.py)
-pandas>=2.0
-openpyxl>=3.1          # pandas' xlsx reader — imported implicitly by read_excel
-pyarrow>=14.0          # required by load_table_from_dataframe
-google-cloud-bigquery>=3.20
+pandas==3.0.5
+openpyxl==3.1.5              # pandas' xlsx reader — imported implicitly by read_excel
+pyarrow==25.0.1              # required by load_table_from_dataframe
+google-cloud-bigquery==3.43.0
 
 # Transformation
-dbt-bigquery>=1.8
+dbt-bigquery==1.12.0
+dbt-core==1.12.3
