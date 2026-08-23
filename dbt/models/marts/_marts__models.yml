@@ -1,0 +1,140 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: >
+      Order-grain fact table. One row per order header, carrying the order's
+      total product quantity aggregated up from the line-item grain in
+      stg_sales. Ex 4. Covers all history in the source (2025-07-09 to
+      2026-12-31) with no year filter: the two-year restriction the exercise
+      asks for is a question asked of this table, applied in analyses and in
+      Looker, not a property stored in it.
+    columns:
+      - name: order_id
+        description: Natural key of the order. The grain of this table.
+        tests:
+          - unique
+          - not_null
+
+      - name: client_id
+        description: >
+          Identifier of the customer who placed the order. Carried on the fact
+          row because no customer dimension exists — the source has no
+          descriptive customer attributes to put in one.
+        tests:
+          - not_null
+
+      - name: order_date
+        description: Calendar date the order was placed. Monthly partition key.
+        tests:
+          - not_null
+
+      - name: net_sales
+        description: Order total as recorded on the order header, not recomputed from the lines.
+        tests:
+          - not_null
+
+      - name: qty_product
+        description: >
+          Total number of product units in the order — the sum of order_qty
+          across the order's lines. Repeated products count once per unit.
+          not_null here asserts that every order header has at least one
+          matching line in stg_sales; a null would mean a header with no lines.
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_orders')
+
+
+  - name: fct_order_items
+    description: >
+      Line-grain fact table: one row per product per order. Passthrough of
+      stg_sales, materialised and physically optimised for the datamart
+      layer. Retains every recorded sales line, including lines whose order
+      header is absent from the orders source; those lines are visible here
+      but are excluded from every order-grain model by construction.
+    columns:
+      - name: order_id
+        description: Order the line belongs to. Not unique at this grain.
+        data_tests:
+          - not_null
+      - name: product_id
+        description: >
+          Product sold on this line. Bare identifier; no descriptive
+          product attributes exist in either source.
+        data_tests:
+          - not_null
+      - name: client_id
+        description: Customer who placed the parent order.
+        data_tests:
+          - not_null
+      - name: order_date
+        description: Date the parent order was placed. Partition key.
+        data_tests:
+          - not_null
+      - name: order_qty
+        description: Units of this product sold on this line.
+        data_tests:
+          - not_null
+      - name: net_sales
+        description: >
+          Net revenue for this line, as NUMERIC. Sums to the parent order
+          total on the order header.
+        data_tests:
+          - not_null
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_id
+              - product_id
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_sales')
+
+  - name: rpt_orders_2026_segmented
+    description: >
+      Exercise 6. One row per order for the reporting year, carrying the
+      segment assigned to that order by the customer's trailing-window
+      order history. Built for a single stated use case rather than for
+      reuse, hence the rpt_ prefix.
+    columns:
+      - name: order_id
+        description: Unique order identifier. Grain of this table.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_orders')
+                field: order_id
+      - name: client_id
+        description: Customer who placed the order. Cluster key.
+        data_tests:
+          - not_null
+      - name: order_date
+        description: >
+          Date the order was placed. Partition key; constrained to the
+          reporting year.
+        data_tests:
+          - not_null
+      - name: net_sales
+        description: Net revenue for the order, as recorded on the order header.
+        data_tests:
+          - not_null
+      - name: qty_product
+        description: Total units across all lines of the order.
+        data_tests:
+          - not_null
+      - name: order_segmentation
+        description: >
+          New, Returning or VIP, determined by how many orders the same
+          customer placed in the trailing window before this one.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['New', 'Returning', 'VIP']

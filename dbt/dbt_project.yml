@@ -29,3 +29,4 @@ vars:
   segmentation_lookback_days: 365
   segmentation_returning_min_prior_orders: 1
   segmentation_vip_min_prior_orders: 4
+  reporting_year: 2026
