@@ -37,6 +37,10 @@ models:
               arguments:
                 to: ref('stg_orders')
                 field: order_id
+              config:
+                severity: error
+                error_if: ">10"
+                warn_if: ">0"
       - name: client_id
         description: Identifier of the customer who placed the order.
         tests:
