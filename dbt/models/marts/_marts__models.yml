@@ -3,16 +3,20 @@ version: 2
 models:
   - name: fct_orders
     description: >
-      Order-grain fact table. One row per order header, carrying the order's
-      total product quantity aggregated up from the line-item grain in
-      stg_sales. Ex 4. Covers all history in the source (2025-07-09 to
-      2026-12-31) with no year filter: the two-year restriction the exercise
-      asks for is a question asked of this table, applied in analyses and in
-      Looker, not a property stored in it.
+      Order-grain fact table. One row per order header, carrying the two facts
+      that are true of an order and absent from the order source: qty_product,
+      aggregated up from the line grain in stg_sales, and order_segmentation,
+      computed from the customer's own trailing-window order history in
+      int_orders_segmented. Both are attributes of the order at this grain and
+      are carried here on that basis, not because a specific exercise asked for
+      them. Covers all history in the source (2025-07-09 to 2026-12-31) with no
+      year filter: the two-year restriction Exercise 4 asks for is a question
+      asked of this table, applied in analyses and in Looker, not a property
+      stored in it.
     columns:
       - name: order_id
         description: Natural key of the order. The grain of this table.
-        tests:
+        data_tests:
           - unique
           - not_null
 
@@ -21,17 +25,17 @@ models:
           Identifier of the customer who placed the order. Carried on the fact
           row because no customer dimension exists — the source has no
           descriptive customer attributes to put in one.
-        tests:
+        data_tests:
           - not_null
 
       - name: order_date
         description: Calendar date the order was placed. Monthly partition key.
-        tests:
+        data_tests:
           - not_null
 
       - name: net_sales
         description: Order total as recorded on the order header, not recomputed from the lines.
-        tests:
+        data_tests:
           - not_null
 
       - name: qty_product
@@ -40,10 +44,27 @@ models:
           across the order's lines. Repeated products count once per unit.
           not_null here asserts that every order header has at least one
           matching line in stg_sales; a null would mean a header with no lines.
-        tests:
+        data_tests:
           - not_null
 
-    tests:
+      - name: order_segmentation
+        description: >
+          New, Returning or VIP: what the customer was at the moment this order
+          was placed, determined by how many orders the same client_id had
+          placed in the 365 days strictly before it. 0 prior orders is New,
+          1 to 3 is Returning, 4 or more is VIP. Immutable once assigned — it
+          depends only on orders that precede this one, never on later ones.
+          The window is bounded by the start of the extract (2025-07-09), so
+          orders before 2026-07-09 are evaluated against a partial lookback.
+          not_null here asserts every order header found a segment; a null
+          would mean the join to int_orders_segmented lost a row.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['New', 'Returning', 'VIP']
+
+    data_tests:
       - dbt_utils.equal_rowcount:
           arguments:
             compare_model: ref('stg_orders')
@@ -51,11 +72,12 @@ models:
 
   - name: fct_order_items
     description: >
-      Line-grain fact table: one row per product per order. Passthrough of
-      stg_sales, materialised and physically optimised for the datamart
-      layer. Retains every recorded sales line, including lines whose order
-      header is absent from the orders source; those lines are visible here
-      but are excluded from every order-grain model by construction.
+      Line-grain fact table: one row per product per order, and the finest
+      grain available in either source. Passthrough of stg_sales, materialised
+      and physically optimised for the datamart layer. Retains every recorded
+      sales line, including lines whose order header is absent from the orders
+      source; those lines are visible here but are excluded from every
+      order-grain model by construction.
     columns:
       - name: order_id
         description: Order the line belongs to. Not unique at this grain.
@@ -95,12 +117,14 @@ models:
           arguments:
             compare_model: ref('stg_sales')
 
+
   - name: rpt_orders_2026_segmented
     description: >
-      Exercise 6. One row per order for the reporting year, carrying the
-      segment assigned to that order by the customer's trailing-window
-      order history. Built for a single stated use case rather than for
-      reuse, hence the rpt_ prefix.
+      Exercise 6. One row per order for the reporting year, with its segment.
+      A projection of fct_orders filtered to one year — no logic of its own.
+      It exists because the exercise asks for the filtered table itself as a
+      deliverable; the rpt_ prefix marks it as built for one stated use case
+      rather than for reuse. Anything reusable should read fct_orders.
     columns:
       - name: order_id
         description: Unique order identifier. Grain of this table.
@@ -131,8 +155,7 @@ models:
           - not_null
       - name: order_segmentation
         description: >
-          New, Returning or VIP, determined by how many orders the same
-          customer placed in the trailing window before this one.
+          New, Returning or VIP, carried through unchanged from fct_orders.
         data_tests:
           - not_null
           - accepted_values:
