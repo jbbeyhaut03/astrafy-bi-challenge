@@ -14,7 +14,7 @@ models:
     columns:
       - name: order_id
         description: Natural key of the order. Grain of this model.
-        tests:
+        data_tests:
           - unique
           - not_null
           - relationships:
@@ -23,15 +23,15 @@ models:
                 field: order_id
       - name: client_id
         description: Customer who placed the order. Partition key of the window.
-        tests:
+        data_tests:
           - not_null
       - name: order_date
         description: Date the order was placed. Orders the window.
-        tests:
+        data_tests:
           - not_null
       - name: net_sales
         description: Order total, carried through unchanged from stg_orders.
-        tests:
+        data_tests:
           - not_null
       - name: prior_orders_12m
         description: >
@@ -39,14 +39,14 @@ models:
           this order, excluding the order itself and excluding same-day orders.
           Retained as an output column so the segment is auditable rather than
           an opaque label.
-        tests:
+        data_tests:
           - not_null
           - dbt_utils.expression_is_true:
               arguments:
                 expression: ">= 0"
       - name: order_segmentation
         description: New, Returning or VIP, derived from prior_orders_12m.
-        tests:
+        data_tests:
           - not_null
           - accepted_values:
               arguments:

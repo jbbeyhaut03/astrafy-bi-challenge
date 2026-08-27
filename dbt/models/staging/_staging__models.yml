@@ -8,20 +8,20 @@ models:
     columns:
       - name: order_id
         description: Primary key. Unique identifier of the order.
-        tests:
+        data_tests:
           - unique
           - not_null
       - name: client_id
         description: Identifier of the customer who placed the order.
-        tests:
+        data_tests:
           - not_null
       - name: order_date
         description: Date the order was placed.
-        tests:
+        data_tests:
           - not_null
       - name: net_sales
         description: Order total revenue.
-        tests:
+        data_tests:
           - not_null
 
   - name: stg_sales
@@ -31,7 +31,7 @@ models:
     columns:
       - name: order_id
         description: Identifier of the order this line belongs to.
-        tests:
+        data_tests:
           - not_null
           - relationships:
               arguments:
@@ -43,25 +43,25 @@ models:
                 warn_if: ">0"
       - name: client_id
         description: Identifier of the customer who placed the order.
-        tests:
+        data_tests:
           - not_null
       - name: order_date
         description: Date the order was placed.
-        tests:
+        data_tests:
           - not_null
       - name: product_id
         description: Identifier of the product on this line.
-        tests:
+        data_tests:
           - not_null
       - name: net_sales
         description: Line-item revenue for this product within the order.
-        tests:
+        data_tests:
           - not_null
       - name: order_qty
         description: Quantity of this product within the order.
-        tests:
+        data_tests:
           - not_null
-    tests:
+    data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
