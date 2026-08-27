@@ -24,15 +24,18 @@ astrafy-bi-challenge/
 
 ## Quickstart
 
-Built against Python 3.14.5 on macOS arm64. GCP project `astrafy-bi-challenge`,
-all datasets in region `EU`.
+Built against Python 3.14.5 on macOS arm64. Runs against any GCP project you can
+authenticate to, new or existing, provided the dataset names `landing`, `dbt_staging`,
+`dbt_intermediate` and `dbt_marts` are free in it.
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
 gcloud auth application-default login
-.venv/bin/python scripts/load_raw_data.py     # loads landing.raw_orders, landing.raw_sales
+gcloud config set project YOUR_PROJECT_ID     # or: export GCP_PROJECT=YOUR_PROJECT_ID
+
+.venv/bin/python scripts/load_raw_data.py     # creates landing.raw_orders, landing.raw_sales
 
 cd dbt
 ../.venv/bin/dbt deps
@@ -40,15 +43,20 @@ cd dbt
 ../.venv/bin/dbt compile                      # renders analyses/ for Ex 1–3
 ```
 
-`~/.dbt/profiles.yml` is not committed. It needs a `astrafy_bi_challenge` profile with
-`method: oauth`, `project: astrafy-bi-challenge`, `dataset: dbt`, `location: EU`.
+**No GCP project ID is written anywhere in this repo.** The loader resolves it from
+`$GCP_PROJECT` or the gcloud default; `_staging__sources.yml` resolves it from
+`{{ target.project }}`, so dbt reads landing out of whichever project the profile names.
+All datasets are created in one region, `EU` unless `$BQ_LOCATION` says otherwise, and
+that region must match `location:` in the profile.
+
+`~/.dbt/profiles.yml` is not committed. It needs an `astrafy_bi_challenge` profile with
+`method: oauth`, `project:` set to the same project, `dataset: dbt`, `location: EU`.
 `dbt debug` confirms it before anything else.
 
-The loader is idempotent — `create_dataset(exists_ok=True)` and `WRITE_TRUNCATE` — and
-its paths are anchored to the script file, so it runs correctly from any working
-directory. `requirements.txt` pins `openpyxl` and `pyarrow`, which appear in no import
-statement but are loaded at runtime by `pd.read_excel` and
-`load_table_from_dataframe`.
+The loader is idempotent — `create_dataset(exists_ok=True)` and `WRITE_TRUNCATE` — and its
+paths are anchored to the script file, so it runs correctly from any working directory.
+`requirements.txt` pins `openpyxl` and `pyarrow`, which appear in no import statement but
+are loaded at runtime by `pd.read_excel` and `load_table_from_dataframe`.
 
 ---
 

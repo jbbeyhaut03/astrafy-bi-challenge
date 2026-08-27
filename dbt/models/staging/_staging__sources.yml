@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: landing
-    database: astrafy-bi-challenge
+    database: "{{ target.project }}"
     schema: landing
     description: >
       Raw tables loaded directly from the source xlsx files via
