@@ -138,7 +138,7 @@ interpolate into every `sql_table_name`, so no dataset name is written twice.
 | 2 | Orders per month, 2026 | `analyses/ex_02_orders_per_month_2026.sql` | table below |
 | 3 | Avg products per order per month, 2026 | `analyses/ex_03_avg_products_per_order_2026.sql` | table below |
 | 4 | Order table + `qty_product`, 2025–26 | `models/marts/fct_orders.sql` | 3,661 rows |
-| 5 | Order segmentation, 2026 | `models/intermediate/int_orders_segmented.sql` → `fct_orders.order_segmentation`; counts in `analyses/ex_05_order_segments_2026.sql` | 1,255 / 810 / 508 |
+| 5 | Order segmentation, 2026 | `models/intermediate/int_orders_segmented.sql` → `fct_orders.order_segmentation`; counts in `analyses/ex_05_order_segments_2026.sql` | 1,087 / 794 / 692 |
 | 6 | 2026 orders + `order_segmentation` | `models/marts/rpt_orders_2026_segmented.sql` | 2,573 rows |
 
 ### Ex 2 and Ex 3, 2026
@@ -166,9 +166,9 @@ warranted here.
 
 | Segment | Orders |
 |---|---|
-| New | 1,255 |
-| Returning | 810 |
-| VIP | 508 |
+| New | 1,087 |
+| Returning | 794 |
+| VIP | 692 |
 | **Total** | **2,573** |
 
 Ex 5 asks for the segment of each order placed in 2026, so the answer is scoped to 2026 —
